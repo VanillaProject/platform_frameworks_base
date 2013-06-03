@@ -1359,7 +1359,6 @@ final class Settings {
                     // userId     - application-specific user id
                     // debugFlag  - 0 or 1 if the package is debuggable.
                     // dataPath   - path to package's data path
-                    // seinfo     - seinfo label for the app (assigned at install time)
                     //
                     // NOTE: We prefer not to expose all ApplicationInfo flags for now.
                     //
@@ -1373,8 +1372,6 @@ final class Settings {
                     sb.append((int)ai.uid);
                     sb.append(isDebug ? " 1 " : " 0 ");
                     sb.append(dataPath);
-                    sb.append(" ");
-                    sb.append(ai.seinfo);
                     sb.append("\n");
                     str.write(sb.toString().getBytes());
                 }
@@ -2340,8 +2337,7 @@ final class Settings {
             ps.setInstalled((ps.pkgFlags&ApplicationInfo.FLAG_SYSTEM) != 0, userHandle);
             // Need to create a data directory for all apps under this user.
             installer.createUserData(ps.name,
-                    UserHandle.getUid(userHandle, ps.appId), userHandle,
-                    ps.pkg.applicationInfo.seinfo);
+                    UserHandle.getUid(userHandle, ps.appId), userHandle);
         }
         readDefaultPreferredAppsLPw(userHandle);
         writePackageRestrictionsLPr(userHandle);
@@ -2485,7 +2481,7 @@ final class Settings {
             if (pkgSetting.getNotLaunched(userId)) {
                 if (pkgSetting.installerPackageName != null) {
                     PackageManagerService.sendPackageBroadcast(Intent.ACTION_PACKAGE_FIRST_LAUNCH,
-                            pkgSetting.name, null,
+                            pkgSetting.name, null, null,
                             pkgSetting.installerPackageName, null, new int[] {userId});
                 }
                 pkgSetting.setNotLaunched(false, userId);

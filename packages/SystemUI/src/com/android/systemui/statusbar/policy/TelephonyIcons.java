@@ -61,6 +61,40 @@ class TelephonyIcons {
           R.drawable.stat_sys_signal_4_fully }
     };
 
+    static final int[][] TELEPHONY_SIGNAL_STRENGTH_6BAR = {
+        { R.drawable.stat_sys_signal_0_6bar,
+          R.drawable.stat_sys_signal_1_6bar,
+          R.drawable.stat_sys_signal_2_6bar,
+          R.drawable.stat_sys_signal_3_6bar,
+          R.drawable.stat_sys_signal_4_6bar,
+          R.drawable.stat_sys_signal_5_6bar,
+          R.drawable.stat_sys_signal_6_6bar },
+        { R.drawable.stat_sys_signal_0_fully_6bar,
+          R.drawable.stat_sys_signal_1_fully_6bar,
+          R.drawable.stat_sys_signal_2_fully_6bar,
+          R.drawable.stat_sys_signal_3_fully_6bar,
+          R.drawable.stat_sys_signal_4_fully_6bar,
+          R.drawable.stat_sys_signal_5_fully_6bar,
+          R.drawable.stat_sys_signal_6_fully_6bar }
+    };
+
+    static final int[][] QS_TELEPHONY_SIGNAL_STRENGTH_6BAR = {
+        { R.drawable.ic_qs_signal_0_6bar,
+          R.drawable.ic_qs_signal_1_6bar,
+          R.drawable.ic_qs_signal_2_6bar,
+          R.drawable.ic_qs_signal_3_6bar,
+          R.drawable.ic_qs_signal_4_6bar,
+          R.drawable.ic_qs_signal_5_6bar,
+          R.drawable.ic_qs_signal_6_6bar },
+        { R.drawable.ic_qs_signal_full_0_6bar,
+          R.drawable.ic_qs_signal_full_1_6bar,
+          R.drawable.ic_qs_signal_full_2_6bar,
+          R.drawable.ic_qs_signal_full_3_6bar,
+          R.drawable.ic_qs_signal_full_4_6bar,
+          R.drawable.ic_qs_signal_full_5_6bar,
+          R.drawable.ic_qs_signal_full_6_6bar }
+    };
+
     static final int[][] DATA_SIGNAL_STRENGTH = TELEPHONY_SIGNAL_STRENGTH;
 
     //***** Data connection icons
@@ -110,6 +144,19 @@ class TelephonyIcons {
               R.drawable.stat_sys_data_fully_connected_h,
               R.drawable.stat_sys_data_fully_connected_h }
     };
+
+    // DC-HSPAP
+    static final int[][] DATA_DC = {
+            { R.drawable.stat_sys_data_connected_dc,
+              R.drawable.stat_sys_data_connected_dc,
+              R.drawable.stat_sys_data_connected_dc,
+              R.drawable.stat_sys_data_connected_dc },
+            { R.drawable.stat_sys_data_fully_connected_dc,
+              R.drawable.stat_sys_data_fully_connected_dc,
+              R.drawable.stat_sys_data_fully_connected_dc,
+              R.drawable.stat_sys_data_fully_connected_dc }
+    };
+
 
     //CDMA
     // Use 3G icons for EVDO data and 1x icons for 1XRTT data

@@ -102,8 +102,7 @@ class IInputMethodWrapper extends IInputMethod.Stub
     public IInputMethodWrapper(AbstractInputMethodService context,
             InputMethod inputMethod) {
         mTarget = new WeakReference<AbstractInputMethodService>(context);
-        mCaller = new HandlerCaller(context.getApplicationContext(), null,
-                this, true /*asyncHandler*/);
+        mCaller = new HandlerCaller(context.getApplicationContext(), this);
         mInputMethod = new WeakReference<InputMethod>(inputMethod);
         mTargetSdkVersion = context.getApplicationInfo().targetSdkVersion;
     }

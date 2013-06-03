@@ -18,6 +18,7 @@ package android.text.method;
 
 import android.text.*;
 import android.text.method.TextKeyListener.Capitalize;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
@@ -128,6 +129,21 @@ public class QwertyKeyListener extends BaseKeyListener {
             if (view != null) {
                 showCharacterPicker(view, content,
                                     KeyCharacterMap.PICKER_DIALOG_INPUT, true, 1);
+            }
+            resetMetaState(content);
+            return true;
+        }
+
+        if (i == KeyCharacterMap.DOT_WWW_INPUT || i == KeyCharacterMap.DOT_COM_INPUT) {
+            content.replace(selStart, selEnd, selStart == 0 ? "www." : ".com");
+            adjustMetaAfterKeypress(content);
+            return true;
+        }
+
+        if (i == KeyCharacterMap.SMILEY_DIALOG_INPUT) {
+            if (view != null) {
+                showCharacterPicker(view, content,
+                                    KeyCharacterMap.SMILEY_DIALOG_INPUT, true, 1);
             }
             resetMetaState(content);
             return true;
@@ -462,6 +478,10 @@ public class QwertyKeyListener extends BaseKeyListener {
         PICKER_SETS.put('z', "\u017A\u017C\u017E");
         PICKER_SETS.put(KeyCharacterMap.PICKER_DIALOG_INPUT,
                              "\u2026\u00A5\u2022\u00AE\u00A9\u00B1[]{}\\|");
+        PICKER_SETS.put(KeyCharacterMap.SMILEY_DIALOG_INPUT,
+                ":) ;) :( :\'( :o :P :$ :S :D :/ :| :O :@ :X :[ :] :-) " +
+                ";-) :-( :-O :-P :-S :-D :-/ :-# :-] =) =D =( =-P =/ =] " +
+                "=[ <3 ^_~ ^_^ ^.^ -.- -_- *_* o_o T_T U_U >_< >.<");
         PICKER_SETS.put('/', "\\");
 
         // From packages/inputmethods/LatinIME/res/xml/kbd_symbols.xml
@@ -498,10 +518,15 @@ public class QwertyKeyListener extends BaseKeyListener {
         if (set == null) {
             return false;
         }
-
+        Log.d("EVDEBUG", "Set: " + set);
         if (count == 1) {
-            new CharacterPickerDialog(view.getContext(),
-                                      view, content, set, insert).show();
+            if (c == KeyCharacterMap.SMILEY_DIALOG_INPUT) {
+                new CharacterPickerDialog(view.getContext(),
+                        view, content, set.split(" "), insert).show();
+            } else {
+                new CharacterPickerDialog(view.getContext(),
+                                          view, content, set, insert).show();
+            }
         }
 
         return true;

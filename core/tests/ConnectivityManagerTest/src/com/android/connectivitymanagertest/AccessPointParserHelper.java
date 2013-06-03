@@ -28,7 +28,6 @@ import android.net.wifi.WifiConfiguration.AuthAlgorithm;
 import android.net.wifi.WifiConfiguration.IpAssignment;
 import android.net.wifi.WifiConfiguration.KeyMgmt;
 import android.net.wifi.WifiConfiguration.ProxySettings;
-import android.net.wifi.WifiEnterpriseConfig;
 import android.net.LinkAddress;
 import android.net.LinkProperties;
 import android.net.RouteInfo;
@@ -68,6 +67,7 @@ import java.util.List;
  *      networkprefixlength.
  */
 public class AccessPointParserHelper {
+    private static final String KEYSTORE_SPACE = "keystore://";
     private static final String TAG = "AccessPointParserHelper";
     static final int NONE = 0;
     static final int WEP = 1;
@@ -212,11 +212,14 @@ public class AccessPointParserHelper {
                         config.allowedKeyManagement.set(KeyMgmt.WPA_EAP);
                         config.allowedKeyManagement.set(KeyMgmt.IEEE8021X);
                         // Initialize other fields.
-                        config.enterpriseConfig.setPhase2Method(WifiEnterpriseConfig.Phase2.NONE);
-                        config.enterpriseConfig.setCaCertificateAlias("");
-                        config.enterpriseConfig.setClientCertificateAlias("");
-                        config.enterpriseConfig.setIdentity("");
-                        config.enterpriseConfig.setAnonymousIdentity("");
+                        config.phase2.setValue("");
+                        config.ca_cert.setValue("");
+                        config.client_cert.setValue("");
+                        config.engine.setValue("");
+                        config.engine_id.setValue("");
+                        config.key_id.setValue("");
+                        config.identity.setValue("");
+                        config.anonymous_identity.setValue("");
                         break;
                     default:
                         throw new SAXException();
@@ -243,7 +246,7 @@ public class AccessPointParserHelper {
                         config.preSharedKey = '"' + passwordStr + '"';
                     }
                 } else if (securityType == EAP) {
-                    config.enterpriseConfig.setPassword(passwordStr);
+                    config.password.setValue(passwordStr);
                 } else {
                     throw new SAXException();
                 }
@@ -254,46 +257,33 @@ public class AccessPointParserHelper {
                 if (!validateEapValue(eapValue)) {
                     throw new SAXException();
                 }
-		if (eapValue.equals("TLS")) {
-		    config.enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.TLS);
-		} else if (eapValue.equals("TTLS")) {
-		    config.enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.TTLS);
-		} else if (eapValue.equals("PEAP")) {
-		    config.enterpriseConfig.setEapMethod(WifiEnterpriseConfig.Eap.PEAP);
-		}
+                config.eap.setValue(eapValue);
                 eap = false;
             }
             if (phase2) {
                 String phase2Value = new String(ch, start, length);
-		if (phase2Value.equals("PAP")) {
-                    config.enterpriseConfig.setPhase2Method(WifiEnterpriseConfig.Phase2.PAP);
-		} else if (phase2Value.equals("MSCHAP")) {
-                    config.enterpriseConfig.setPhase2Method(WifiEnterpriseConfig.Phase2.MSCHAP);
-		} else if (phase2Value.equals("MSCHAPV2")) {
-                    config.enterpriseConfig.setPhase2Method(WifiEnterpriseConfig.Phase2.MSCHAPV2);
-		} else if (phase2Value.equals("GTC")) {
-                    config.enterpriseConfig.setPhase2Method(WifiEnterpriseConfig.Phase2.GTC);
-		}
+                config.phase2.setValue("auth=" + phase2Value);
                 phase2 = false;
             }
             if (identity) {
                 String identityValue = new String(ch, start, length);
-                config.enterpriseConfig.setIdentity(identityValue);
+                config.identity.setValue(identityValue);
                 identity = false;
             }
             if (anonymousidentity) {
                 String anonyId = new String(ch, start, length);
-                config.enterpriseConfig.setAnonymousIdentity(anonyId);
+                config.anonymous_identity.setValue(anonyId);
                 anonymousidentity = false;
             }
             if (cacert) {
                 String cacertValue = new String(ch, start, length);
-                config.enterpriseConfig.setCaCertificateAlias(cacertValue);
+                // need to install the credentail to "keystore://"
+                config.ca_cert.setValue(KEYSTORE_SPACE);
                 cacert = false;
             }
             if (usercert) {
                 String usercertValue = new String(ch, start, length);
-                config.enterpriseConfig.setClientCertificateAlias(usercertValue);
+                config.client_cert.setValue(KEYSTORE_SPACE);
                 usercert = false;
             }
             if (ip) {

@@ -27,7 +27,6 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
-import android.os.SELinux;
 import android.util.Log;
 
 import com.android.org.bouncycastle.util.encoders.Base64;
@@ -65,10 +64,6 @@ public class LocalTransport extends IBackupTransport.Stub {
 
     public LocalTransport(Context context) {
         mContext = context;
-        mDataDir.mkdirs();
-        if (!SELinux.restorecon(mDataDir)) {
-            Log.e(TAG, "SELinux restorecon failed for " + mDataDir);
-        }
     }
 
     public Intent configurationIntent() {

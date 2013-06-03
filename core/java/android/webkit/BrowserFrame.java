@@ -40,13 +40,13 @@ import android.view.WindowManager;
 
 import junit.framework.Assert;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.net.URLEncoder;
+import java.nio.charset.Charsets;
 import java.security.PrivateKey;
-import java.security.cert.CertificateFactory;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,8 +55,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import com.android.org.conscrypt.OpenSSLKey;
-import com.android.org.conscrypt.OpenSSLKeyHolder;
+import org.apache.harmony.security.provider.cert.X509CertImpl;
+import org.apache.harmony.xnet.provider.jsse.OpenSSLDSAPrivateKey;
+import org.apache.harmony.xnet.provider.jsse.OpenSSLRSAPrivateKey;
 
 class BrowserFrame extends Handler {
 
@@ -1078,12 +1079,10 @@ class BrowserFrame extends Handler {
             String url) {
         final SslError sslError;
         try {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            X509Certificate cert = (X509Certificate) cf.generateCertificate(
-                    new ByteArrayInputStream(certDER));
+            X509Certificate cert = new X509CertImpl(certDER);
             SslCertificate sslCert = new SslCertificate(cert);
             sslError = SslError.SslErrorFromChromiumErrorCode(certError, sslCert, url);
-        } catch (Exception e) {
+        } catch (IOException e) {
             // Can't get the certificate, not much to do.
             Log.e(LOGTAG, "Can't get the certificate from WebKit, canceling");
             nativeSslCertErrorCancel(handle, certError);
@@ -1130,10 +1129,13 @@ class BrowserFrame extends Handler {
         if (table.IsAllowed(hostAndPort)) {
             // previously allowed
             PrivateKey pkey = table.PrivateKey(hostAndPort);
-            if (pkey instanceof OpenSSLKeyHolder) {
-                OpenSSLKey sslKey = ((OpenSSLKeyHolder) pkey).getOpenSSLKey();
+            if (pkey instanceof OpenSSLRSAPrivateKey) {
                 nativeSslClientCert(handle,
-                                    sslKey.getPkeyContext(),
+                                    ((OpenSSLRSAPrivateKey)pkey).getPkeyContext(),
+                                    table.CertificateChain(hostAndPort));
+            } else if (pkey instanceof OpenSSLDSAPrivateKey) {
+                nativeSslClientCert(handle,
+                                    ((OpenSSLDSAPrivateKey)pkey).getPkeyContext(),
                                     table.CertificateChain(hostAndPort));
             } else {
                 nativeSslClientCert(handle,
@@ -1201,11 +1203,9 @@ class BrowserFrame extends Handler {
      */
     private void setCertificate(byte cert_der[]) {
         try {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            X509Certificate cert = (X509Certificate) cf.generateCertificate(
-                    new ByteArrayInputStream(cert_der));
+            X509Certificate cert = new X509CertImpl(cert_der);
             mCallbackProxy.onReceivedCertificate(new SslCertificate(cert));
-        } catch (Exception e) {
+        } catch (IOException e) {
             // Can't get the certificate, not much to do.
             Log.e(LOGTAG, "Can't get the certificate from WebKit, canceling");
             return;
@@ -1327,7 +1327,7 @@ class BrowserFrame extends Handler {
     private native void nativeSslCertErrorCancel(int handle, int certError);
 
     native void nativeSslClientCert(int handle,
-                                    long ctx,
+                                    int ctx,
                                     byte[][] asn1DerEncodedCertificateChain);
 
     native void nativeSslClientCert(int handle,

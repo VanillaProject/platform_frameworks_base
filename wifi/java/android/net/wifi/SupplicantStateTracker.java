@@ -42,7 +42,6 @@ class SupplicantStateTracker extends StateMachine {
     private WifiStateMachine mWifiStateMachine;
     private WifiConfigStore mWifiConfigStore;
     private int mAuthenticationFailuresCount = 0;
-    private int mAssociationRejectCount = 0;
     /* Indicates authentication failure in supplicant broadcast.
      * TODO: enhance auth failure reporting to include notification
      * for all type of failures: EAP, WPS & WPA networks */
@@ -50,9 +49,6 @@ class SupplicantStateTracker extends StateMachine {
 
     /* Maximum retries on a authentication failure notification */
     private static final int MAX_RETRIES_ON_AUTHENTICATION_FAILURE = 2;
-
-    /* Maximum retries on assoc rejection events */
-    private static final int MAX_RETRIES_ON_ASSOCIATION_REJECT = 4;
 
     /* Tracks if networks have been disabled during a connection */
     private boolean mNetworksDisabledDuringConnect = false;
@@ -89,14 +85,14 @@ class SupplicantStateTracker extends StateMachine {
         start();
     }
 
-    private void handleNetworkConnectionFailure(int netId, int disableReason) {
+    private void handleNetworkConnectionFailure(int netId) {
         /* If other networks disabled during connection, enable them */
         if (mNetworksDisabledDuringConnect) {
             mWifiConfigStore.enableAllNetworks();
             mNetworksDisabledDuringConnect = false;
         }
         /* Disable failed network */
-        mWifiConfigStore.disableNetwork(netId, disableReason);
+        mWifiConfigStore.disableNetwork(netId, WifiConfiguration.DISABLED_AUTH_FAILURE);
     }
 
     private void transitionOnSupplicantStateChange(StateChangeResult stateChangeResult) {
@@ -182,10 +178,6 @@ class SupplicantStateTracker extends StateMachine {
                     break;
                 case WifiManager.CONNECT_NETWORK:
                     mNetworksDisabledDuringConnect = true;
-                    mAssociationRejectCount = 0;
-                    break;
-                case WifiMonitor.ASSOCIATION_REJECTION_EVENT:
-                    mAssociationRejectCount++;
                     break;
                 default:
                     Log.e(TAG, "Ignoring " + message);
@@ -230,17 +222,9 @@ class SupplicantStateTracker extends StateMachine {
              if (mAuthenticationFailuresCount >= MAX_RETRIES_ON_AUTHENTICATION_FAILURE) {
                  Log.d(TAG, "Failed to authenticate, disabling network " +
                          stateChangeResult.networkId);
-                 handleNetworkConnectionFailure(stateChangeResult.networkId,
-                         WifiConfiguration.DISABLED_AUTH_FAILURE);
+                 handleNetworkConnectionFailure(stateChangeResult.networkId);
                  mAuthenticationFailuresCount = 0;
              }
-             else if (mAssociationRejectCount >= MAX_RETRIES_ON_ASSOCIATION_REJECT) {
-                 Log.d(TAG, "Association getting rejected, disabling network " +
-                         stateChangeResult.networkId);
-                 handleNetworkConnectionFailure(stateChangeResult.networkId,
-                         WifiConfiguration.DISABLED_ASSOCIATION_REJECT);
-                 mAssociationRejectCount = 0;
-            }
          }
     }
 
@@ -280,8 +264,7 @@ class SupplicantStateTracker extends StateMachine {
                         if (mLoopDetectCount > MAX_SUPPLICANT_LOOP_ITERATIONS) {
                             Log.d(TAG, "Supplicant loop detected, disabling network " +
                                     stateChangeResult.networkId);
-                            handleNetworkConnectionFailure(stateChangeResult.networkId,
-                                    WifiConfiguration.DISABLED_AUTH_FAILURE);
+                            handleNetworkConnectionFailure(stateChangeResult.networkId);
                         }
                         mLoopDetectIndex = state.ordinal();
                         sendSupplicantStateChangedBroadcast(state,
@@ -304,7 +287,6 @@ class SupplicantStateTracker extends StateMachine {
              if (DBG) Log.d(TAG, getName() + "\n");
              /* Reset authentication failure count */
              mAuthenticationFailuresCount = 0;
-             mAssociationRejectCount = 0;
              if (mNetworksDisabledDuringConnect) {
                  mWifiConfigStore.enableAllNetworks();
                  mNetworksDisabledDuringConnect = false;

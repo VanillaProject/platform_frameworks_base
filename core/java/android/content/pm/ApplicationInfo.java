@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -398,15 +399,6 @@ public class ApplicationInfo extends PackageItemInfo implements Parcelable {
     public String[] resourceDirs;
 
     /**
-     * String retrieved from the seinfo tag found in selinux policy. This value
-     * is useful in setting an SELinux security context on the process as well
-     * as its data directory.
-     *
-     * {@hide}
-     */
-    public String seinfo;
-
-    /**
      * Paths to all shared libraries this application is linked against.  This
      * field is only set if the {@link PackageManager#GET_SHARED_LIBRARY_FILES
      * PackageManager.GET_SHARED_LIBRARY_FILES} flag was used when retrieving
@@ -453,6 +445,30 @@ public class ApplicationInfo extends PackageItemInfo implements Parcelable {
      * @hide
      */
     public int enabledSetting = PackageManager.COMPONENT_ENABLED_STATE_DEFAULT;
+    /**
+     * Is given application theme agnostic, i.e. behaves properly when default theme is changed.
+     * {@hide}
+     */
+    public boolean isThemeable = false;
+
+    private static final String PLUTO_SCHEMA = "http://www.w3.org/2001/pluto.html";
+
+    /**
+     * @hide
+     */
+    public static final String PLUTO_ISTHEMEABLE_ATTRIBUTE_NAME = "isThemeable";
+
+    /**
+     * @hide
+     */
+    public static final String PLUTO_HANDLE_THEME_CONFIG_CHANGES_ATTRIBUTE_NAME = "handleThemeConfigChanges";
+
+    /**
+     * @hide
+     */
+    public static boolean isPlutoNamespace(String namespace) {
+        return namespace != null && namespace.equalsIgnoreCase(PLUTO_SCHEMA);
+    }
 
     /**
      * For convenient access to package's install location.
@@ -485,9 +501,6 @@ public class ApplicationInfo extends PackageItemInfo implements Parcelable {
         }
         if (resourceDirs != null) {
             pw.println(prefix + "resourceDirs=" + resourceDirs);
-        }
-        if (seinfo != null) {
-            pw.println(prefix + "seinfo=" + seinfo);
         }
         pw.println(prefix + "dataDir=" + dataDir);
         if (sharedLibraryFiles != null) {
@@ -556,7 +569,6 @@ public class ApplicationInfo extends PackageItemInfo implements Parcelable {
         publicSourceDir = orig.publicSourceDir;
         nativeLibraryDir = orig.nativeLibraryDir;
         resourceDirs = orig.resourceDirs;
-        seinfo = orig.seinfo;
         sharedLibraryFiles = orig.sharedLibraryFiles;
         dataDir = orig.dataDir;
         uid = orig.uid;
@@ -568,6 +580,7 @@ public class ApplicationInfo extends PackageItemInfo implements Parcelable {
         descriptionRes = orig.descriptionRes;
         uiOptions = orig.uiOptions;
         backupAgentName = orig.backupAgentName;
+        isThemeable = orig.isThemeable;
     }
 
 
@@ -596,7 +609,6 @@ public class ApplicationInfo extends PackageItemInfo implements Parcelable {
         dest.writeString(publicSourceDir);
         dest.writeString(nativeLibraryDir);
         dest.writeStringArray(resourceDirs);
-        dest.writeString(seinfo);
         dest.writeStringArray(sharedLibraryFiles);
         dest.writeString(dataDir);
         dest.writeInt(uid);
@@ -608,6 +620,7 @@ public class ApplicationInfo extends PackageItemInfo implements Parcelable {
         dest.writeString(backupAgentName);
         dest.writeInt(descriptionRes);
         dest.writeInt(uiOptions);
+        dest.writeInt(isThemeable? 1 : 0);
     }
 
     public static final Parcelable.Creator<ApplicationInfo> CREATOR
@@ -635,7 +648,6 @@ public class ApplicationInfo extends PackageItemInfo implements Parcelable {
         publicSourceDir = source.readString();
         nativeLibraryDir = source.readString();
         resourceDirs = source.readStringArray();
-        seinfo = source.readString();
         sharedLibraryFiles = source.readStringArray();
         dataDir = source.readString();
         uid = source.readInt();
@@ -647,6 +659,7 @@ public class ApplicationInfo extends PackageItemInfo implements Parcelable {
         backupAgentName = source.readString();
         descriptionRes = source.readInt();
         uiOptions = source.readInt();
+        isThemeable = source.readInt() != 0;
     }
 
     /**

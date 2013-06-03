@@ -41,6 +41,8 @@ import static android.view.WindowManager.LayoutParams.TYPE_UNIVERSE_BACKGROUND;
 import static android.view.WindowManager.LayoutParams.TYPE_WALLPAPER;
 
 import com.android.internal.app.IBatteryStats;
+import com.android.internal.app.ThemeUtils;
+
 import com.android.internal.policy.PolicyManager;
 import com.android.internal.policy.impl.PhoneWindowManager;
 import com.android.internal.view.IInputContext;
@@ -298,6 +300,13 @@ public class WindowManagerService extends IWindowManager.Stub
 
     private static final float THUMBNAIL_ANIMATION_DECELERATE_FACTOR = 1.5f;
 
+
+    private BroadcastReceiver mThemeChangeReceiver = new BroadcastReceiver() {
+        public void onReceive(Context context, Intent intent) {
+            mUiContext = null;
+        }
+    };
+
     final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -313,12 +322,15 @@ public class WindowManagerService extends IWindowManager.Stub
     int mCurrentUserId;
 
     final Context mContext;
+    private Context mUiContext;
 
     final boolean mHaveInputMethods;
 
     final boolean mAllowBootMessages;
 
     final boolean mLimitedAlphaCompositing;
+
+    final boolean mSetLandscapeProperty;
 
     final WindowManagerPolicy mPolicy = PolicyManager.makeNewWindowManager();
 
@@ -796,6 +808,8 @@ public class WindowManagerService extends IWindowManager.Stub
         mOnlyCore = onlyCore;
         mLimitedAlphaCompositing = context.getResources().getBoolean(
                 com.android.internal.R.bool.config_sf_limitedAlpha);
+        mSetLandscapeProperty = context.getResources().getBoolean(
+                com.android.internal.R.bool.config_setLandscapeProp);
         mDisplayManagerService = displayManager;
         mHeadless = displayManager.isHeadless();
 
@@ -850,6 +864,15 @@ public class WindowManagerService extends IWindowManager.Stub
         } finally {
             Surface.closeTransaction();
         }
+
+        ThemeUtils.registerThemeChangeReceiver(mContext, mThemeChangeReceiver);
+    }
+
+    private Context getUiContext() {
+        if (mUiContext == null) {
+            mUiContext = ThemeUtils.createUiContext(mContext);
+        }
+        return mUiContext != null ? mUiContext : mContext;
     }
 
     public InputMonitor getInputMonitor() {
@@ -1514,11 +1537,7 @@ public class WindowManagerService extends IWindowManager.Stub
                     pos++;
                 }
                 if (pos >= N) {
-                    // Z order is good.
-                    // The IM target window may be changed, so update the mTargetAppToken.
-                    if (imWin != null) {
-                        imWin.mTargetAppToken = mInputMethodTarget.mAppToken;
-                    }
+                    // All is good!
                     return false;
                 }
             }
@@ -4157,7 +4176,8 @@ public class WindowManagerService extends IWindowManager.Stub
                 mStartingIconInTransition = false;
                 mSkipAppTransitionAnimation = false;
                 mH.removeMessages(H.APP_TRANSITION_TIMEOUT);
-                mH.sendEmptyMessageDelayed(H.APP_TRANSITION_TIMEOUT, 5000);
+                mH.sendMessageDelayed(mH.obtainMessage(H.APP_TRANSITION_TIMEOUT),
+                        5000);
             }
         }
     }
@@ -4728,7 +4748,8 @@ public class WindowManagerService extends IWindowManager.Stub
                 if (mAppsFreezingScreen == 1) {
                     startFreezingDisplayLocked(false, 0, 0);
                     mH.removeMessages(H.APP_FREEZE_TIMEOUT);
-                    mH.sendEmptyMessageDelayed(H.APP_FREEZE_TIMEOUT, 5000);
+                    mH.sendMessageDelayed(mH.obtainMessage(H.APP_FREEZE_TIMEOUT),
+                            5000);
                 }
             }
             final int N = wtoken.allAppWindows.size();
@@ -5248,7 +5269,8 @@ public class WindowManagerService extends IWindowManager.Stub
                 try {
                     startFreezingDisplayLocked(false, exitAnim, enterAnim);
                     mH.removeMessages(H.CLIENT_FREEZE_TIMEOUT);
-                    mH.sendEmptyMessageDelayed(H.CLIENT_FREEZE_TIMEOUT, 5000);
+                    mH.sendMessageDelayed(mH.obtainMessage(H.CLIENT_FREEZE_TIMEOUT),
+                            5000);
                 } finally {
                     Binder.restoreCallingIdentity(origId);
                 }
@@ -5376,7 +5398,7 @@ public class WindowManagerService extends IWindowManager.Stub
         }
 
         // Persist setting
-        mH.sendEmptyMessage(H.PERSIST_ANIMATION_SCALE);
+        mH.obtainMessage(H.PERSIST_ANIMATION_SCALE).sendToTarget();
     }
 
     public void setAnimationScales(float[] scales) {
@@ -5398,7 +5420,7 @@ public class WindowManagerService extends IWindowManager.Stub
         }
 
         // Persist setting
-        mH.sendEmptyMessage(H.PERSIST_ANIMATION_SCALE);
+        mH.obtainMessage(H.PERSIST_ANIMATION_SCALE).sendToTarget();
     }
 
     private void setAnimatorDurationScale(float scale) {
@@ -5452,13 +5474,19 @@ public class WindowManagerService extends IWindowManager.Stub
     // Called by window manager policy.  Not exposed externally.
     @Override
     public void shutdown(boolean confirm) {
-        ShutdownThread.shutdown(mContext, confirm);
+        ShutdownThread.shutdown(getUiContext(), confirm);
     }
 
     // Called by window manager policy.  Not exposed externally.
     @Override
     public void rebootSafeMode(boolean confirm) {
-        ShutdownThread.rebootSafeMode(mContext, confirm);
+        ShutdownThread.rebootSafeMode(getUiContext(), confirm);
+    }
+
+    // Called by window manager policy.  Not exposed externally.
+    @Override
+    public void reboot(String reason) {
+        ShutdownThread.reboot(getUiContext(),reason, true);
     }
 
     public void setInputFilter(IInputFilter filter) {
@@ -5508,7 +5536,8 @@ public class WindowManagerService extends IWindowManager.Stub
             hideBootMessagesLocked();
             // If the screen still doesn't come up after 30 seconds, give
             // up and turn it on.
-            mH.sendEmptyMessageDelayed(H.BOOT_TIMEOUT, 30*1000);
+            Message msg = mH.obtainMessage(H.BOOT_TIMEOUT);
+            mH.sendMessageDelayed(msg, 30*1000);
         }
 
         mPolicy.systemBooted();
@@ -5531,7 +5560,7 @@ public class WindowManagerService extends IWindowManager.Stub
         if (!mSystemBooted && !mShowingBootMessages) {
             return;
         }
-        mH.sendEmptyMessage(H.ENABLE_SCREEN);
+        mH.sendMessage(mH.obtainMessage(H.ENABLE_SCREEN));
     }
 
     public void performBootTimeout() {
@@ -5764,6 +5793,12 @@ public class WindowManagerService extends IWindowManager.Stub
 
     public void setStrictModeVisualIndicatorPreference(String value) {
         SystemProperties.set(StrictMode.VISUAL_PROPERTY, value);
+    }
+
+    /** {@hide} */
+    public void setLandscapeProperty(String value) {
+        if (!mSetLandscapeProperty) return;
+        SystemProperties.set("sys.orientation.landscape", value);
     }
 
     /**
@@ -6107,7 +6142,7 @@ public class WindowManagerService extends IWindowManager.Stub
 
         mWindowsFreezingScreen = true;
         mH.removeMessages(H.WINDOW_FREEZE_TIMEOUT);
-        mH.sendEmptyMessageDelayed(H.WINDOW_FREEZE_TIMEOUT,
+        mH.sendMessageDelayed(mH.obtainMessage(H.WINDOW_FREEZE_TIMEOUT),
                 WINDOW_FREEZE_TIMEOUT_DURATION);
         mWaitingForConfig = true;
         getDefaultDisplayContentLocked().layoutNeeded = true;
@@ -6925,8 +6960,13 @@ public class WindowManagerService extends IWindowManager.Stub
         }
 
         if (config != null) {
-            config.orientation = (dw <= dh) ? Configuration.ORIENTATION_PORTRAIT :
-                    Configuration.ORIENTATION_LANDSCAPE;
+            if (dw <= dh) {
+                config.orientation = Configuration.ORIENTATION_PORTRAIT;
+                setLandscapeProperty("0");
+            } else {
+                config.orientation = Configuration.ORIENTATION_LANDSCAPE;
+                setLandscapeProperty("1");
+            }
         }
 
         // Update application display metrics.
@@ -7636,7 +7676,8 @@ public class WindowManagerService extends IWindowManager.Stub
                             if (mAnimator.mAnimating || mLayoutToAnim.mAnimationScheduled) {
                                 // If we are animating, don't do the gc now but
                                 // delay a bit so we don't interrupt the animation.
-                                sendEmptyMessageDelayed(H.FORCE_GC, 2000);
+                                mH.sendMessageDelayed(mH.obtainMessage(H.FORCE_GC),
+                                        2000);
                                 return;
                             }
                             // If we are currently rotating the display, it will
@@ -7761,7 +7802,7 @@ public class WindowManagerService extends IWindowManager.Stub
                     // Used to send multiple changes from the animation side to the layout side.
                     synchronized (mWindowMap) {
                         if (copyAnimToLayoutParamsLocked()) {
-                            sendEmptyMessage(CLEAR_PENDING_ACTIONS);
+                            mH.sendEmptyMessage(CLEAR_PENDING_ACTIONS);
                             performLayoutAndPlaceSurfacesLocked();
                         }
                     }
@@ -8350,7 +8391,7 @@ public class WindowManagerService extends IWindowManager.Stub
 
             if (mWindowsChanged && !mWindowChangeListeners.isEmpty()) {
                 mH.removeMessages(H.REPORT_WINDOWS_CHANGE);
-                mH.sendEmptyMessage(H.REPORT_WINDOWS_CHANGE);
+                mH.sendMessage(mH.obtainMessage(H.REPORT_WINDOWS_CHANGE));
             }
         } catch (RuntimeException e) {
             mInLayout = false;
@@ -8546,8 +8587,8 @@ public class WindowManagerService extends IWindowManager.Stub
                 // XXX should probably keep timeout from
                 // when we first froze the display.
                 mH.removeMessages(H.WINDOW_FREEZE_TIMEOUT);
-                mH.sendEmptyMessageDelayed(H.WINDOW_FREEZE_TIMEOUT, 
-                        WINDOW_FREEZE_TIMEOUT_DURATION);
+                mH.sendMessageDelayed(mH.obtainMessage(
+                        H.WINDOW_FREEZE_TIMEOUT), WINDOW_FREEZE_TIMEOUT_DURATION);
             }
         }
     }
@@ -9461,31 +9502,9 @@ public class WindowManagerService extends IWindowManager.Stub
                 if (DEBUG_ORIENTATION &&
                         winAnimator.mDrawState == WindowStateAnimator.DRAW_PENDING) Slog.i(
                         TAG, "Resizing " + win + " WITH DRAW PENDING");
-                final boolean reportDraw
-                        = winAnimator.mDrawState == WindowStateAnimator.DRAW_PENDING;
-                final Configuration newConfig = configChanged ? win.mConfiguration : null;
-                if (win.mClient instanceof IWindow.Stub) {
-                    // Simulate one-way call if win.mClient is a local object.
-                    final IWindow client = win.mClient;
-                    final Rect frame = win.mFrame;
-                    final Rect contentInsets = win.mLastContentInsets;
-                    final Rect visibleInsets = win.mLastVisibleInsets;
-                    mH.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                client.resized(frame, contentInsets, visibleInsets,
-                                               reportDraw, newConfig);
-                            } catch (RemoteException e) {
-                                // Actually, it's not a remote call.
-                                // RemoteException mustn't be raised.
-                            }
-                        }
-                    });
-                } else {
-                    win.mClient.resized(win.mFrame, win.mLastContentInsets, win.mLastVisibleInsets,
-                                        reportDraw, newConfig);
-                }
+                win.mClient.resized(win.mFrame, win.mLastContentInsets, win.mLastVisibleInsets,
+                        winAnimator.mDrawState == WindowStateAnimator.DRAW_PENDING,
+                        configChanged ? win.mConfiguration : null);
                 win.mContentInsetsChanged = false;
                 win.mVisibleInsetsChanged = false;
                 winAnimator.mSurfaceResized = false;
@@ -10246,7 +10265,8 @@ public class WindowManagerService extends IWindowManager.Stub
         // processes holds on others can be released if they are
         // no longer needed.
         mH.removeMessages(H.FORCE_GC);
-        mH.sendEmptyMessageDelayed(H.FORCE_GC, 2000);
+        mH.sendMessageDelayed(mH.obtainMessage(H.FORCE_GC),
+                2000);
 
         mScreenFrozenLock.release();
         

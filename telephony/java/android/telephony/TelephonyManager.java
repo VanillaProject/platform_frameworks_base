@@ -23,7 +23,7 @@ import android.os.Bundle;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.SystemProperties;
-import android.telephony.Rlog;
+import android.util.Log;
 
 import com.android.internal.telephony.IPhoneSubInfo;
 import com.android.internal.telephony.ITelephony;
@@ -57,6 +57,7 @@ import java.util.regex.Pattern;
  * the methods through which you access the protected information.
  */
 public class TelephonyManager {
+    private static final boolean DBG = false;
     private static final String TAG = "TelephonyManager";
 
     private static Context sContext;
@@ -413,7 +414,7 @@ public class TelephonyManager {
                 cmdline = new String(buffer, 0, count);
             }
         } catch (IOException e) {
-            Rlog.d(TAG, "No /proc/cmdline exception=" + e);
+            Log.d(TAG, "No /proc/cmdline exception=" + e);
         } finally {
             if (is != null) {
                 try {
@@ -422,7 +423,7 @@ public class TelephonyManager {
                 }
             }
         }
-        Rlog.d(TAG, "/proc/cmdline=" + cmdline);
+        Log.d(TAG, "/proc/cmdline=" + cmdline);
         return cmdline;
     }
 
@@ -469,10 +470,19 @@ public class TelephonyManager {
             }
         }
 
-        Rlog.d(TAG, "getLteOnCdmaMode=" + retVal + " curVal=" + curVal +
+         if (DBG) Log.d(TAG, "getLteOnCdmaMode=" + retVal + " curVal=" + curVal +
                 " product_type='" + productType +
                 "' lteOnCdmaProductType='" + sLteOnCdmaProductType + "'");
         return retVal;
+    }
+
+    /**
+     * Return if the current radio is LTE on GSM
+     * @hide
+     */
+    public static int getLteOnGsmModeStatic() {
+        return SystemProperties.getInt(TelephonyProperties.PROPERTY_LTE_ON_GSM_DEVICE,
+                    0);
     }
 
     //
@@ -557,6 +567,8 @@ public class TelephonyManager {
     public static final int NETWORK_TYPE_EHRPD = 14;
     /** Current network is HSPA+ */
     public static final int NETWORK_TYPE_HSPAP = 15;
+    /** Current network is DC-HSPAP */
+    public static final int NETWORK_TYPE_DCHSPAP = 30;
 
     /**
      * Returns a constant indicating the radio technology (network type)
@@ -579,6 +591,7 @@ public class TelephonyManager {
      * @see #NETWORK_TYPE_LTE
      * @see #NETWORK_TYPE_EHRPD
      * @see #NETWORK_TYPE_HSPAP
+     * @see #NETWORK_TYPE_DCHSPAP
      */
     public int getNetworkType() {
         try{
@@ -630,6 +643,7 @@ public class TelephonyManager {
             case NETWORK_TYPE_EVDO_B:
             case NETWORK_TYPE_EHRPD:
             case NETWORK_TYPE_HSPAP:
+            case NETWORK_TYPE_DCHSPAP:
                 return NETWORK_CLASS_3_G;
             case NETWORK_TYPE_LTE:
                 return NETWORK_CLASS_4_G;
@@ -682,6 +696,8 @@ public class TelephonyManager {
                 return "iDEN";
             case NETWORK_TYPE_HSPAP:
                 return "HSPA+";
+            case NETWORK_TYPE_DCHSPAP:
+                return "DCHSPAP";
             default:
                 return "UNKNOWN";
         }
@@ -824,6 +840,21 @@ public class TelephonyManager {
         } catch (NullPointerException ex) {
             // This could happen before phone restarts due to crashing
             return PhoneConstants.LTE_ON_CDMA_UNKNOWN;
+        }
+    }
+
+    /**
+     * Return if the current radio is LTE on GSM
+     * @hide
+     */
+    public int getLteOnGsmMode() {
+        try {
+            return getITelephony().getLteOnGsmMode();
+        } catch (RemoteException ex) {
+            return 0;
+        } catch (NullPointerException ex) {
+            // This could happen before phone restarts due to crashing
+            return 0;
         }
     }
 

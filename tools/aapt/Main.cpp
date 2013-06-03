@@ -1,5 +1,6 @@
 //
 // Copyright 2006 The Android Open Source Project
+// This code has been modified.  Portions copyright (C) 2010, T-Mobile USA, Inc.
 //
 // Android Asset Packaging Tool main entry point.
 //
@@ -14,6 +15,7 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <assert.h>
+#include <ctype.h>
 
 using namespace android;
 
@@ -48,7 +50,6 @@ void usage(void)
         "   List contents of Zip-compatible archive.\n\n", gProgName);
     fprintf(stderr,
         " %s d[ump] [--values] WHAT file.{apk} [asset [asset ...]]\n"
-        "   strings          Print the contents of the resource table string pool in the APK.\n"
         "   badging          Print the label and icon for the app declared in APK.\n"
         "   permissions      Print the permissions from the APK.\n"
         "   resources        Print the resource table from the APK.\n"
@@ -56,7 +57,7 @@ void usage(void)
         "   xmltree          Print the compiled xmls in the given assets.\n"
         "   xmlstrings       Print the strings of the given compiled xml assets.\n\n", gProgName);
     fprintf(stderr,
-        " %s p[ackage] [-d][-f][-m][-u][-v][-x][-z][-M AndroidManifest.xml] \\\n"
+        " %s p[ackage] [-d][-f][-m][-u][-v][-x[ extending-resource-id]][-z][-M AndroidManifest.xml] \\\n"
         "        [-0 extension [-0 extension ...]] [-g tolerance] [-j jarfile] \\\n"
         "        [--debug-mode] [--min-sdk-version VAL] [--target-sdk-version VAL] \\\n"
         "        [--app-version VAL] [--app-version-name TEXT] [--custom-package VAL] \\\n"
@@ -86,7 +87,11 @@ void usage(void)
         "   Add specified files to Zip-compatible archive.\n\n", gProgName);
     fprintf(stderr,
         " %s c[runch] [-v] -S resource-sources ... -C output-folder ...\n"
-        "   Do PNG preprocessing and store the results in output folder.\n\n", gProgName);
+        "   Do PNG preprocessing on one or several resource folders\n"
+        "   and store the results in the output folder.\n\n", gProgName);
+    fprintf(stderr,
+        " %s s[ingleCrunch] [-v] -i input-file -o outputfile\n"
+        "   Do PNG preprocessing on a single file.\n\n", gProgName);
     fprintf(stderr,
         " %s v[ersion]\n"
         "   Print program version.\n\n", gProgName);
@@ -116,7 +121,7 @@ void usage(void)
 #endif
         "   -u  update existing packages (add new, replace older, remove deleted files)\n"
         "   -v  verbose output\n"
-        "   -x  create extending (non-application) resource IDs\n"
+        "   -x  either create or assign (if specified) extending (non-application) resource IDs\n"
         "   -z  require localization of resource attributes marked with\n"
         "       localization=\"suggested\"\n"
         "   -A  additional directory in which to find raw asset files\n"
@@ -204,13 +209,14 @@ int handleCommand(Bundle* bundle)
     //    printf("  %d: '%s'\n", i, bundle->getFileSpecEntry(i));
 
     switch (bundle->getCommand()) {
-    case kCommandVersion:   return doVersion(bundle);
-    case kCommandList:      return doList(bundle);
-    case kCommandDump:      return doDump(bundle);
-    case kCommandAdd:       return doAdd(bundle);
-    case kCommandRemove:    return doRemove(bundle);
-    case kCommandPackage:   return doPackage(bundle);
-    case kCommandCrunch:    return doCrunch(bundle);
+    case kCommandVersion:      return doVersion(bundle);
+    case kCommandList:         return doList(bundle);
+    case kCommandDump:         return doDump(bundle);
+    case kCommandAdd:          return doAdd(bundle);
+    case kCommandRemove:       return doRemove(bundle);
+    case kCommandPackage:      return doPackage(bundle);
+    case kCommandCrunch:       return doCrunch(bundle);
+    case kCommandSingleCrunch: return doSingleCrunch(bundle);
     default:
         fprintf(stderr, "%s: requested command not yet supported\n", gProgName);
         return 1;
@@ -250,6 +256,8 @@ int main(int argc, char* const argv[])
         bundle.setCommand(kCommandPackage);
     else if (argv[1][0] == 'c')
         bundle.setCommand(kCommandCrunch);
+    else if (argv[1][0] == 's')
+        bundle.setCommand(kCommandSingleCrunch);
     else {
         fprintf(stderr, "ERROR: Unknown command '%s'\n", argv[1]);
         wantUsage = true;
@@ -314,6 +322,14 @@ int main(int argc, char* const argv[])
                 break;
             case 'x':
                 bundle.setExtending(true);
+                argc--;
+                argv++;
+                if (!argc || !isdigit(argv[0][0])) {
+                    argc++;
+                    argv--;
+                } else {
+                    bundle.setExtendedPackageId(atoi(argv[0]));
+                }
                 break;
             case 'z':
                 bundle.setRequireLocalization(true);
@@ -427,6 +443,28 @@ int main(int argc, char* const argv[])
                 }
                 convertPath(argv[0]);
                 bundle.setCrunchedOutputDir(argv[0]);
+                break;
+            case 'i':
+                argc--;
+                argv++;
+                if (!argc) {
+                    fprintf(stderr, "ERROR: No argument supplied for '-i' option\n");
+                    wantUsage = true;
+                    goto bail;
+                }
+                convertPath(argv[0]);
+                bundle.setSingleCrunchInputFile(argv[0]);
+                break;
+            case 'o':
+                argc--;
+                argv++;
+                if (!argc) {
+                    fprintf(stderr, "ERROR: No argument supplied for '-o' option\n");
+                    wantUsage = true;
+                    goto bail;
+                }
+                convertPath(argv[0]);
+                bundle.setSingleCrunchOutputFile(argv[0]);
                 break;
             case '0':
                 argc--;

@@ -14,10 +14,13 @@
 ** limitations under the License.
 */
 
-#include <sys/capability.h>
+#include <linux/capability.h>
 #include "installd.h"
 #include <diskusage/dirsize.h>
+
+#ifdef HAVE_SELINUX
 #include <selinux/android.h>
+#endif
 
 /* Directory records that are used in execution of commands. */
 dir_rec_t android_data_dir;
@@ -28,7 +31,7 @@ dir_rec_t android_app_lib_dir;
 dir_rec_t android_media_dir;
 dir_rec_array_t android_system_dirs;
 
-int install(const char *pkgname, uid_t uid, gid_t gid, const char *seinfo)
+int install(const char *pkgname, uid_t uid, gid_t gid)
 {
     char pkgdir[PKG_PATH_MAX];
     char libsymlink[PKG_PATH_MAX];
@@ -91,12 +94,14 @@ int install(const char *pkgname, uid_t uid, gid_t gid, const char *seinfo)
         return -1;
     }
 
-    if (selinux_android_setfilecon2(pkgdir, pkgname, seinfo, uid) < 0) {
+#ifdef HAVE_SELINUX
+    if (selinux_android_setfilecon(pkgdir, pkgname, uid) < 0) {
         ALOGE("cannot setfilecon dir '%s': %s\n", pkgdir, strerror(errno));
         unlink(libsymlink);
         unlink(pkgdir);
-        return -errno;
+        return -1;
     }
+#endif
 
     if (chown(pkgdir, uid, gid) < 0) {
         ALOGE("cannot chown dir '%s': %s\n", pkgdir, strerror(errno));
@@ -184,7 +189,7 @@ int delete_user_data(const char *pkgname, uid_t persona)
     return delete_dir_contents(pkgdir, 0, "lib");
 }
 
-int make_user_data(const char *pkgname, uid_t uid, uid_t persona, const char* seinfo)
+int make_user_data(const char *pkgname, uid_t uid, uid_t persona)
 {
     char pkgdir[PKG_PATH_MAX];
     char applibdir[PKG_PATH_MAX];
@@ -245,19 +250,21 @@ int make_user_data(const char *pkgname, uid_t uid, uid_t persona, const char* se
         return -1;
     }
 
-    if (selinux_android_setfilecon2(pkgdir, pkgname, seinfo, uid) < 0) {
-        ALOGE("cannot setfilecon dir '%s': %s\n", pkgdir, strerror(errno));
-        unlink(libsymlink);
-        unlink(pkgdir);
-        return -errno;
-    }
-
     if (chown(pkgdir, uid, uid) < 0) {
         ALOGE("cannot chown dir '%s': %s\n", pkgdir, strerror(errno));
         unlink(libsymlink);
         unlink(pkgdir);
         return -errno;
     }
+
+#ifdef HAVE_SELINUX
+    if (selinux_android_setfilecon(pkgdir, pkgname, uid) < 0) {
+        ALOGE("cannot setfilecon dir '%s': %s\n", pkgdir, strerror(errno));
+        unlink(libsymlink);
+        unlink(pkgdir);
+        return -errno;
+    }
+#endif
 
     return 0;
 }
@@ -317,7 +324,7 @@ int clone_persona_data(uid_t src_persona, uid_t target_persona, int copy)
                 uid = (uid_t) s.st_uid % PER_USER_RANGE;
                 /* Create the directory for the target */
                 make_user_data(name, uid + target_persona * PER_USER_RANGE,
-                               target_persona, NULL);
+                               target_persona);
             }
         }
         closedir(d);

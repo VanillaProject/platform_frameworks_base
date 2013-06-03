@@ -334,7 +334,7 @@ public final class InputMethodManager {
     
     class H extends Handler {
         H(Looper looper) {
-            super(looper, null, true);
+            super(looper);
         }
         
         @Override
@@ -1565,36 +1565,38 @@ public final class InputMethodManager {
     /**
      * @hide
      */
-    public int dispatchKeyEvent(Context context, int seq, KeyEvent key,
+    public void dispatchKeyEvent(Context context, int seq, KeyEvent key,
             FinishedEventCallback callback) {
+        boolean handled = false;
         synchronized (mH) {
             if (DEBUG) Log.d(TAG, "dispatchKeyEvent");
 
             if (mCurMethod != null) {
                 if (key.getAction() == KeyEvent.ACTION_DOWN
-                        && key.getKeyCode() == KeyEvent.KEYCODE_SYM
-                        && key.getRepeatCount() == 0) {
+                        && key.getKeyCode() == KeyEvent.KEYCODE_SYM) {
                     showInputMethodPickerLocked();
-                    return ViewRootImpl.EVENT_HANDLED;
-                }
-                try {
-                    if (DEBUG) Log.v(TAG, "DISPATCH KEY: " + mCurMethod);
-                    final long startTime = SystemClock.uptimeMillis();
-                    enqueuePendingEventLocked(startTime, seq, mCurId, callback);
-                    mCurMethod.dispatchKeyEvent(seq, key, mInputMethodCallback);
-                    return ViewRootImpl.EVENT_IN_PROGRESS;
-                } catch (RemoteException e) {
-                    Log.w(TAG, "IME died: " + mCurId + " dropping: " + key, e);
+                    handled = true;
+                } else {
+                    try {
+                        if (DEBUG) Log.v(TAG, "DISPATCH KEY: " + mCurMethod);
+                        final long startTime = SystemClock.uptimeMillis();
+                        enqueuePendingEventLocked(startTime, seq, mCurId, callback);
+                        mCurMethod.dispatchKeyEvent(seq, key, mInputMethodCallback);
+                        return;
+                    } catch (RemoteException e) {
+                        Log.w(TAG, "IME died: " + mCurId + " dropping: " + key, e);
+                    }
                 }
             }
         }
-        return ViewRootImpl.EVENT_NOT_HANDLED;
+
+        callback.finishedEvent(seq, handled);
     }
 
     /**
      * @hide
      */
-    public int dispatchTrackballEvent(Context context, int seq, MotionEvent motion,
+    public void dispatchTrackballEvent(Context context, int seq, MotionEvent motion,
             FinishedEventCallback callback) {
         synchronized (mH) {
             if (DEBUG) Log.d(TAG, "dispatchTrackballEvent");
@@ -1605,19 +1607,20 @@ public final class InputMethodManager {
                     final long startTime = SystemClock.uptimeMillis();
                     enqueuePendingEventLocked(startTime, seq, mCurId, callback);
                     mCurMethod.dispatchTrackballEvent(seq, motion, mInputMethodCallback);
-                    return ViewRootImpl.EVENT_IN_PROGRESS;
+                    return;
                 } catch (RemoteException e) {
                     Log.w(TAG, "IME died: " + mCurId + " dropping trackball: " + motion, e);
                 }
             }
         }
-        return ViewRootImpl.EVENT_NOT_HANDLED;
+
+        callback.finishedEvent(seq, false);
     }
 
     /**
      * @hide
      */
-    public int dispatchGenericMotionEvent(Context context, int seq, MotionEvent motion,
+    public void dispatchGenericMotionEvent(Context context, int seq, MotionEvent motion,
             FinishedEventCallback callback) {
         synchronized (mH) {
             if (DEBUG) Log.d(TAG, "dispatchGenericMotionEvent");
@@ -1628,13 +1631,14 @@ public final class InputMethodManager {
                     final long startTime = SystemClock.uptimeMillis();
                     enqueuePendingEventLocked(startTime, seq, mCurId, callback);
                     mCurMethod.dispatchGenericMotionEvent(seq, motion, mInputMethodCallback);
-                    return ViewRootImpl.EVENT_IN_PROGRESS;
+                    return;
                 } catch (RemoteException e) {
                     Log.w(TAG, "IME died: " + mCurId + " dropping generic motion: " + motion, e);
                 }
             }
         }
-        return ViewRootImpl.EVENT_NOT_HANDLED;
+
+        callback.finishedEvent(seq, false);
     }
 
     void finishedEvent(int seq, boolean handled) {

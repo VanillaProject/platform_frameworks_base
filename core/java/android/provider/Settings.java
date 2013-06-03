@@ -2023,6 +2023,19 @@ public final class Settings {
         public static final String ACCELEROMETER_ROTATION = "accelerometer_rotation";
 
         /**
+         * Control the type of rotation which can be performed using the accelerometer
+         * if ACCELEROMETER_ROTATION is enabled.
+         * Value is a bitwise combination of
+         * 1 = 0 degrees (portrait)
+         * 2 = 90 degrees (left)
+         * 4 = 180 degrees (inverted portrait)
+         * 8 = 270 degrees (right)
+         * Setting to 0 is effectively orientation lock
+         * @hide
+         */
+        public static final String ACCELEROMETER_ROTATION_ANGLES = "accelerometer_rotation_angles";
+
+        /**
          * Default screen rotation when no other policy applies.
          * When {@link #ACCELEROMETER_ROTATION} is zero and no on-screen Activity expresses a
          * preference, this rotation value will be used. Must be one of the
@@ -2118,6 +2131,11 @@ public final class Settings {
          * @hide
          */
         public static final String NOTIFICATION_LIGHT_PULSE = "notification_light_pulse";
+
+        /** Sprint MWI Quirk: Show message wait indicator notifications
+         * @hide
+         */
+        public static final String ENABLE_MWI_NOTIFICATION = "enable_mwi_notification";
 
         /**
          * Show pointer location on screen?
@@ -2265,6 +2283,11 @@ public final class Settings {
         public static final String SIP_ASK_ME_EACH_TIME = "SIP_ASK_ME_EACH_TIME";
 
         /**
+         * Torch state (flashlight)
+         * @hide
+         */
+        public static final String TORCH_STATE = "torch_state";
+        /**
          * Pointer speed setting.
          * This is an integer value in a range between -7 and +7, so there are 15 possible values.
          *   -7 = slowest
@@ -2273,6 +2296,117 @@ public final class Settings {
          * @hide
          */
         public static final String POINTER_SPEED = "pointer_speed";
+
+        /* START Constants for Evervolv Toolbox */
+
+        /**
+         * Disable all toolbox options. Allows user to achieve a more "stock"
+         * look and feel of android.
+         * @hide
+         */
+        public static final String DISABLE_TOOLBOX = "disable_toolbox";
+
+        /**
+         * Toggle lockscreen volume button music controls to change media tracks.
+         * @hide
+         */
+        public static final String LOCKSCREEN_MUSIC_CONTROLS_VOLBTN = "lockscreen_music_controls_volbtn";
+
+        /**
+         * Toggle to let volume button wake the screen.
+         * @hide
+         */
+        public static final String VOLUME_WAKE_SCREEN = "volume_wake_screen";
+
+        /**
+         * Toggle to let trackball wake the screen.
+         * @hide
+         */
+        public static final String TRACKBALL_WAKE_SCREEN = "trackball_wake_screen";
+
+        /**
+         * Statusbar battery icon style options.
+         * 0 - Stock
+         * 1 - Stock w/ percentages
+         * 2 - Hidden
+         * @hide
+         */
+        public static final String STATUSBAR_BATT_STYLE = "statusbar_batt_style";
+
+        /**
+         * Statusbar toggle for 6 bar signal strength.
+         * @hide
+         */
+        public static final String STATUSBAR_6BAR_SIGNAL = "statusbar_6bar_signal";
+
+        /**
+         * Show or hide power menu options
+         * 1 = hide reboot menu
+         * 2 = hide screenshot option
+         * 4 = hide sound toggle
+         * 8 = hide airplane mode toggle
+         * @hide
+         */
+        public static final String HIDDEN_POWER_MENU_OPTIONS = "hidden_power_menu_options";
+
+        /**
+         * Change the screenshot delay from the power menu
+         * Default: 1 (1 second, 1000ms)
+         * @hide
+         */
+        public static final String POWER_MENU_SCREENSHOT_DELAY = "power_menu_screenshot_delay";
+
+        /**
+         * Which lockscreen style to use. The value is an integer.
+         * ( 0 - GlowPadView    : JB     )
+         * ( 1 - MultiwaveView  : ICS    )
+         * ( 2 - Tabs           : GB     )
+         * ( 3 - Rotary         : Eclair )
+         * @hide
+         */
+        public static final String LOCKSCREEN_STYLE = "lockscreen_style";
+
+        /**
+         * Message to show on the lockscreen, replacing Owner info.
+         * @hide
+         */
+        public static final String LOCKSCREEN_MESSAGE = "lockscreen_message";
+
+        /**
+         * Lockscreen background
+         * ( -1 for default background )
+         * ( -2 for custom image located in /data/data/com.evervolv.toolbox/files/lock_wallpaper )
+         * ( -3 for transparent background, desktop showing)
+         * ( any other positive value for custom color )
+         * @hide
+         */
+        public static final String LOCKSCREEN_BACKGROUND = "lockscreen_background";
+
+        /* END Constants for Evervolv Toolbox */
+
+        /* START Constants for Theme compatibility */
+
+		/**
+		* Theme compatibility mode: Battery
+		* @hide
+		*/
+		public static final String THEME_COMPATIBILITY_BATTERY = "theme_compatibility_battery";
+
+		/**
+		* Theme compatibility mode: Four bar signal
+		* @hide
+		*/
+		public static final String THEME_COMPATIBILITY_SIGNAL = "theme_compatibility_signal";
+
+		/* END Constants for Theme compatibility */
+
+        /**
+         * toggle to "fix" the following: (found in NotificationManagerService)
+         *  new in 4.2: if there was supposed to be a sound and we're in vibrate mode,
+         *  we always vibrate, even if no vibration was specified
+         * @hide
+         */
+        public static final String NOTIFICATION_CONVERT_SOUND_TO_VIBRATION = "convert_sound_to_vibration";
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
@@ -3092,6 +3226,12 @@ public final class Settings {
         public static final String ADB_ENABLED = Global.ADB_ENABLED;
 
         /**
+         * The hostname for this device
+         * @hide
+         */
+        public static final String DEVICE_HOSTNAME = "device_hostname";
+
+        /**
          * Setting to allow mock locations and location provider status to be injected into the
          * LocationManager service for testing purposes during application development.  These
          * locations and status values  override actual location and status information generated
@@ -3681,6 +3821,12 @@ public final class Settings {
         @Deprecated
         public static final String WIFI_MOBILE_DATA_TRANSITION_WAKELOCK_TIMEOUT_MS =
                 Global.WIFI_MOBILE_DATA_TRANSITION_WAKELOCK_TIMEOUT_MS;
+
+        /**
+         * Whether the Wimax should be on.  Only the WiMAX service should touch this.
+         * @hide
+         */
+        public static final String WIMAX_ON = "wimax_on";
 
         /**
          * Whether background data usage is allowed.

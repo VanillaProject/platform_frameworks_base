@@ -79,8 +79,7 @@ public class HeaderViewListAdapter implements WrapperListAdapter, Filterable {
     }
 
     public boolean isEmpty() {
-        return (mAdapter == null || mAdapter.isEmpty())
-	        && getFootersCount() + getHeadersCount() == 0;
+        return mAdapter == null || mAdapter.isEmpty();
     }
 
     private boolean areAllListInfosSelectable(ArrayList<ListView.FixedViewInfo> infos) {
@@ -145,7 +144,7 @@ public class HeaderViewListAdapter implements WrapperListAdapter, Filterable {
     }
 
     public boolean isEnabled(int position) {
-        // Header (negative positions will throw an IndexOutOfBoundsException)
+        // Header (negative positions will throw an ArrayIndexOutOfBoundsException)
         int numHeaders = getHeadersCount();
         if (position < numHeaders) {
             return mHeaderViewInfos.get(position).isSelectable;
@@ -161,12 +160,12 @@ public class HeaderViewListAdapter implements WrapperListAdapter, Filterable {
             }
         }
 
-        // Footer (off-limits positions will throw an IndexOutOfBoundsException)
+        // Footer (off-limits positions will throw an ArrayIndexOutOfBoundsException)
         return mFooterViewInfos.get(adjPosition - adapterCount).isSelectable;
     }
 
     public Object getItem(int position) {
-        // Header (negative positions will throw an IndexOutOfBoundsException)
+        // Header (negative positions will throw an ArrayIndexOutOfBoundsException)
         int numHeaders = getHeadersCount();
         if (position < numHeaders) {
             return mHeaderViewInfos.get(position).data;
@@ -182,7 +181,7 @@ public class HeaderViewListAdapter implements WrapperListAdapter, Filterable {
             }
         }
 
-        // Footer (off-limits positions will throw an IndexOutOfBoundsException)
+        // Footer (off-limits positions will throw an ArrayIndexOutOfBoundsException)
         return mFooterViewInfos.get(adjPosition - adapterCount).data;
     }
 
@@ -206,7 +205,7 @@ public class HeaderViewListAdapter implements WrapperListAdapter, Filterable {
     }
 
     public View getView(int position, View convertView, ViewGroup parent) {
-        // Header (negative positions will throw an IndexOutOfBoundsException)
+        // Header (negative positions will throw an ArrayIndexOutOfBoundsException)
         int numHeaders = getHeadersCount();
         if (position < numHeaders) {
             return mHeaderViewInfos.get(position).view;
@@ -222,7 +221,7 @@ public class HeaderViewListAdapter implements WrapperListAdapter, Filterable {
             }
         }
 
-        // Footer (off-limits positions will throw an IndexOutOfBoundsException)
+        // Footer (off-limits positions will throw an ArrayIndexOutOfBoundsException)
         return mFooterViewInfos.get(adjPosition - adapterCount).view;
     }
 

@@ -127,7 +127,7 @@ public class WifiStateMachine extends StateMachine {
     private final boolean mBackgroundScanSupported;
 
     private String mInterfaceName;
-    /* Tethering interface could be separate from wlan interface */
+    /* Tethering interface could be seperate from wlan interface */
     private String mTetherInterfaceName;
 
     private int mLastSignalLevel = -1;
@@ -248,7 +248,7 @@ public class WifiStateMachine extends StateMachine {
     static final int CMD_START_DRIVER                     = BASE + 13;
     /* Stop the driver */
     static final int CMD_STOP_DRIVER                      = BASE + 14;
-    /* Indicates Static IP succeeded */
+    /* Indicates Static IP succeded */
     static final int CMD_STATIC_IP_SUCCESS                = BASE + 15;
     /* Indicates Static IP failed */
     static final int CMD_STATIC_IP_FAILURE                = BASE + 16;
@@ -263,7 +263,7 @@ public class WifiStateMachine extends StateMachine {
 
     /* Start the soft access point */
     static final int CMD_START_AP                         = BASE + 21;
-    /* Indicates soft ap start succeeded */
+    /* Indicates soft ap start succeded */
     static final int CMD_START_AP_SUCCESS                 = BASE + 22;
     /* Indicates soft ap start failed */
     static final int CMD_START_AP_FAILURE                 = BASE + 23;
@@ -883,22 +883,22 @@ public class WifiStateMachine extends StateMachine {
      * TODO: doc
      */
     public void setScanOnlyMode(boolean enable) {
-        if (enable) {
-            sendMessage(obtainMessage(CMD_SET_SCAN_MODE, SCAN_ONLY_MODE, 0));
-        } else {
-            sendMessage(obtainMessage(CMD_SET_SCAN_MODE, CONNECT_MODE, 0));
-        }
+      if (enable) {
+          sendMessage(obtainMessage(CMD_SET_SCAN_MODE, SCAN_ONLY_MODE, 0));
+      } else {
+          sendMessage(obtainMessage(CMD_SET_SCAN_MODE, CONNECT_MODE, 0));
+      }
     }
 
     /**
      * TODO: doc
      */
     public void setScanType(boolean active) {
-        if (active) {
-            sendMessage(obtainMessage(CMD_SET_SCAN_TYPE, SCAN_ACTIVE, 0));
-        } else {
-            sendMessage(obtainMessage(CMD_SET_SCAN_TYPE, SCAN_PASSIVE, 0));
-        }
+      if (active) {
+          sendMessage(obtainMessage(CMD_SET_SCAN_TYPE, SCAN_ACTIVE, 0));
+      } else {
+          sendMessage(obtainMessage(CMD_SET_SCAN_TYPE, SCAN_PASSIVE, 0));
+      }
     }
 
     /**
@@ -1962,7 +1962,6 @@ public class WifiStateMachine extends StateMachine {
                 case WifiMonitor.SCAN_RESULTS_EVENT:
                 case WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT:
                 case WifiMonitor.AUTHENTICATION_FAILURE_EVENT:
-                case WifiMonitor.ASSOCIATION_REJECTION_EVENT:
                 case WifiMonitor.WPS_OVERLAP_EVENT:
                 case CMD_BLACKLIST_NETWORK:
                 case CMD_CLEAR_BLACKLIST:
@@ -2359,7 +2358,7 @@ public class WifiStateMachine extends StateMachine {
             if (!mWifiNative.setSerialNumber(detail)) {
                 loge("Failed to set serial number " + detail);
             }
-            if (!mWifiNative.setConfigMethods("physical_display virtual_push_button")) {
+            if (!mWifiNative.setConfigMethods("physical_display virtual_push_button keypad")) {
                 loge("Failed to set WPS config methods");
             }
             if (!mWifiNative.setDeviceType(mPrimaryDeviceType)) {
@@ -2699,7 +2698,6 @@ public class WifiStateMachine extends StateMachine {
                 case WifiMonitor.NETWORK_CONNECTION_EVENT:
                 case WifiMonitor.NETWORK_DISCONNECTION_EVENT:
                 case WifiMonitor.AUTHENTICATION_FAILURE_EVENT:
-                case WifiMonitor.ASSOCIATION_REJECTION_EVENT:
                 case WifiMonitor.WPS_OVERLAP_EVENT:
                 case CMD_SET_SCAN_TYPE:
                 case CMD_SET_COUNTRY_CODE:
@@ -3094,9 +3092,6 @@ public class WifiStateMachine extends StateMachine {
             if (DBG) log(getName() + message.toString() + "\n");
             StateChangeResult stateChangeResult;
             switch(message.what) {
-                case WifiMonitor.ASSOCIATION_REJECTION_EVENT:
-                    mSupplicantStateTracker.sendMessage(WifiMonitor.ASSOCIATION_REJECTION_EVENT);
-                    break;
                 case WifiMonitor.AUTHENTICATION_FAILURE_EVENT:
                     mSupplicantStateTracker.sendMessage(WifiMonitor.AUTHENTICATION_FAILURE_EVENT);
                     break;
@@ -3415,10 +3410,6 @@ public class WifiStateMachine extends StateMachine {
                   break;
                   /* Defer any power mode changes since we must keep active power mode at DHCP */
               case CMD_SET_HIGH_PERF_MODE:
-                  deferMessage(message);
-                  break;
-                  /* Defer scan request since we should not switch to other channels at DHCP */
-              case CMD_START_SCAN:
                   deferMessage(message);
                   break;
               default:
@@ -3791,9 +3782,6 @@ public class WifiStateMachine extends StateMachine {
                     if (DBG) log("Network connection lost");
                     handleNetworkDisconnect();
                     break;
-                case WifiMonitor.ASSOCIATION_REJECTION_EVENT:
-                    if (DBG) log("Ignore Assoc reject event during WPS Connection");
-                    break;
                 case WifiMonitor.AUTHENTICATION_FAILURE_EVENT:
                     // Disregard auth failure events during WPS connection. The
                     // EAP sequence is retried several times, and there might be
@@ -3991,7 +3979,6 @@ public class WifiStateMachine extends StateMachine {
                     if (!isWifiTethered(stateChange.active)) {
                         loge("Tethering reports wifi as untethered!, shut down soft Ap");
                         setWifiApEnabled(null, false);
-                        setWifiApEnabled(null, true);
                     }
                     return HANDLED;
                 case CMD_STOP_AP:

@@ -37,8 +37,8 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import com.android.org.conscrypt.OpenSSLEngine;
-import com.android.org.conscrypt.TrustedCertificateStore;
+import org.apache.harmony.xnet.provider.jsse.OpenSSLEngine;
+import org.apache.harmony.xnet.provider.jsse.TrustedCertificateStore;
 
 /**
  * The {@code KeyChain} class provides access to private keys and
@@ -336,18 +336,11 @@ public final class KeyChain {
         KeyChainConnection keyChainConnection = bind(context);
         try {
             IKeyChainService keyChainService = keyChainConnection.getService();
-
-            final byte[] certificateBytes = keyChainService.getCertificate(alias);
-            if (certificateBytes == null) {
-                return null;
-            }
-
+            byte[] certificateBytes = keyChainService.getCertificate(alias);
             TrustedCertificateStore store = new TrustedCertificateStore();
             List<X509Certificate> chain = store
                     .getCertificateChain(toCertificate(certificateBytes));
             return chain.toArray(new X509Certificate[chain.size()]);
-        } catch (CertificateException e) {
-            throw new KeyChainException(e);
         } catch (RemoteException e) {
             throw new KeyChainException(e);
         } catch (RuntimeException e) {

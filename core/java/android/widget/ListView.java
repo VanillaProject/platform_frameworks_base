@@ -2429,9 +2429,7 @@ public class ListView extends AbsListView {
         View selectedView = getSelectedView();
         int selectedPos = mSelectedPosition;
 
-        int nextSelectedPosition = (direction == View.FOCUS_DOWN) ?
-                lookForSelectablePosition(selectedPos + 1, true) :
-                lookForSelectablePosition(selectedPos - 1, false);
+        int nextSelectedPosition = lookForSelectablePositionOnScreen(direction);
         int amountToScroll = amountToScroll(direction, nextSelectedPosition);
 
         // if we are moving focus, we may OVERRIDE the default behavior
@@ -2643,18 +2641,14 @@ public class ListView extends AbsListView {
         final int listBottom = getHeight() - mListPadding.bottom;
         final int listTop = mListPadding.top;
 
-        int numChildren = getChildCount();
+        final int numChildren = getChildCount();
 
         if (direction == View.FOCUS_DOWN) {
             int indexToMakeVisible = numChildren - 1;
             if (nextSelectedPosition != INVALID_POSITION) {
                 indexToMakeVisible = nextSelectedPosition - mFirstPosition;
             }
-            while (numChildren <= indexToMakeVisible) {
-                // Child to view is not attached yet.
-                addViewBelow(getChildAt(numChildren - 1), mFirstPosition + numChildren - 1);
-                numChildren++;
-            }
+
             final int positionToMakeVisible = mFirstPosition + indexToMakeVisible;
             final View viewToMakeVisible = getChildAt(indexToMakeVisible);
 
@@ -2686,12 +2680,6 @@ public class ListView extends AbsListView {
         } else {
             int indexToMakeVisible = 0;
             if (nextSelectedPosition != INVALID_POSITION) {
-                indexToMakeVisible = nextSelectedPosition - mFirstPosition;
-            }
-            while (indexToMakeVisible < 0) {
-                // Child to view is not attached yet.
-                addViewAbove(getChildAt(0), mFirstPosition);
-                mFirstPosition--;
                 indexToMakeVisible = nextSelectedPosition - mFirstPosition;
             }
             final int positionToMakeVisible = mFirstPosition + indexToMakeVisible;
@@ -2993,9 +2981,11 @@ public class ListView extends AbsListView {
             while (first.getBottom() < listTop) {
                 AbsListView.LayoutParams layoutParams = (LayoutParams) first.getLayoutParams();
                 if (recycleBin.shouldRecycleViewType(layoutParams.viewType)) {
+                    detachViewFromParent(first);
                     recycleBin.addScrapView(first, mFirstPosition);
+                } else {
+                    removeViewInLayout(first);
                 }
-                detachViewFromParent(first);
                 first = getChildAt(0);
                 mFirstPosition++;
             }
@@ -3022,9 +3012,11 @@ public class ListView extends AbsListView {
             while (last.getTop() > listBottom) {
                 AbsListView.LayoutParams layoutParams = (LayoutParams) last.getLayoutParams();
                 if (recycleBin.shouldRecycleViewType(layoutParams.viewType)) {
+                    detachViewFromParent(last);
                     recycleBin.addScrapView(last, mFirstPosition+lastIndex);
+                } else {
+                    removeViewInLayout(last);
                 }
-                detachViewFromParent(last);
                 last = getChildAt(--lastIndex);
             }
         }
